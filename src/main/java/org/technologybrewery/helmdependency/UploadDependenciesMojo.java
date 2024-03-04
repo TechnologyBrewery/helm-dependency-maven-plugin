@@ -3,11 +3,15 @@ package org.technologybrewery.helmdependency;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.List;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
+import org.technologybrewery.orphedomos.util.exec.DockerCommandExecutor;
+import org.technologybrewery.orphedomos.util.exec.DockerCredentialExecutor;
 
 import io.kokuwa.maven.helm.UploadMojo;
 import io.kokuwa.maven.helm.pojo.HelmRepository;
@@ -16,8 +20,11 @@ import io.kokuwa.maven.helm.pojo.RepoType;
 @Mojo(name = "upload-dependencies")
 public class UploadDependenciesMojo extends UploadMojo {
 
-    @Parameter(property = "url", required = true)
-    private String url;
+    @Parameter(property = "chartsUrl", required = true)
+    private String chartsUrl;
+
+    @Parameter(property = "dockerUrl", required = true)
+    private String dockerUrl;
 
     @Parameter(property = "id", required = true)
     private String id;
@@ -28,15 +35,17 @@ public class UploadDependenciesMojo extends UploadMojo {
     @Parameter(defaultValue = "${project}", required = true, readonly = true)
     private MavenProject project;
 
-    private static String HELM_PACKAGE = "helm";
-
     @Override
     public void execute() throws MojoExecutionException {
-        if (!project.getPackaging().equals(HELM_PACKAGE)) {
+        if (!HelmDependencyUtils.isHelmPackage(project.getPackaging())) {
             return;
         }
-        uploadRepoStable = createHelmRepository(id, url, type);
-        uploadRepoSnapshot = createHelmRepository(id, url, type);
+        uploadRepoStable = createHelmRepository(id, chartsUrl, type);
+        uploadRepoSnapshot = createHelmRepository(id, chartsUrl, type);
+		useLocalHelmBinary = true;
+		autoDetectLocalHelmBinary = true;
+        DockerCredentialExecutor credentials = new DockerCredentialExecutor(settings, id, dockerUrl, project.getBasedir(), true, false);
+        credentials.login();
         for (Path chartDirectory : getChartDirectories()) {
             outputDirectory = new File(Paths.get(chartDirectory.toString(), "charts").toString());
             if (!outputDirectory.exists()) {
@@ -49,6 +58,23 @@ public class UploadDependenciesMojo extends UploadMojo {
             } catch (Exception e) {
                 getLog().info(String.format("%s:%s", e.getMessage(), e.getCause()));
             }
+            try {
+                deployDockerDependentDockerImages(chartDirectory.toString());
+            } catch (Exception e) {
+                getLog().info(String.format("%s:%s", e.getMessage(), e.getCause()));
+            }
+        }
+        credentials.logout();
+    }
+
+    private void deployDockerDependentDockerImages(String chartDirectory) throws MojoExecutionException, InterruptedException {
+        String chartTarballs = Paths.get(chartDirectory, "target", "helm", "repo").toString();
+        List<String> dockerImages = HelmDependencyUtils.getDependentDockerImages(helm(), chartTarballs);
+        DockerCommandExecutor executor = new DockerCommandExecutor(project.getBasedir());
+        for(String dockerImage : dockerImages) {
+            String newTag = String.format("%s%s", dockerUrl, dockerImage);
+            executor.executeAndLogOutput(Arrays.asList("tag", dockerImage, newTag));
+            executor.executeAndLogOutput(Arrays.asList("push", newTag));
         }
     }
 

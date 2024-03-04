@@ -1,14 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-
     <parent>
-        <groupId>io.kokuwa.maven</groupId>
-        <artifactId>maven-parent</artifactId>
-        <version>0.6.13</version>
-        <relativePath />
+        <groupId>org.technologybrewery</groupId>
+        <artifactId>parent</artifactId>
+        <version>7</version>
     </parent>
-
     <groupId>org.technologybrewery.helmdependency</groupId>
     <artifactId>helm-dependency-maven-plugin</artifactId>
     <version>1.0.0-SNAPSHOT</version>
@@ -19,38 +16,24 @@
     <url>https://github.com/TechnologyBrewery/helm-dependency-maven-plugin</url>
 
     <properties>
-
-        <!-- ===================================================================== -->
-        <!-- ============================== Build ================================ -->
-        <!-- ===================================================================== -->
-
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
-        <maven.compiler.showDeprecation>false</maven.compiler.showDeprecation>
-        <maven.compiler.compilerArgument>-Xlint:all,-processing,-deprecation</maven.compiler.compilerArgument>
-
-        <!-- we have flaky tests with caching of Authenticator.setDefault() -->
-        <surefire.rerunFailingTestsCount>3</surefire.rerunFailingTestsCount>
-
-        <invoker.debug>false</invoker.debug>
-        <invoker.parallelThreads>0.5C</invoker.parallelThreads>
-        <invoker.settingsFile>${project.basedir}/src/it/settings.xml</invoker.settingsFile>
-
-        <!-- ===================================================================== -->
-        <!-- ============================= Versions ============================== -->
-        <!-- ===================================================================== -->
-
-        <version.com.puppycrawl.tools.checkstyle>9.3</version.com.puppycrawl.tools.checkstyle>
         <group.helm.maven.plugin>io.kokuwa.maven</group.helm.maven.plugin>
         <version.helm.maven.plugin>6.14.1-SNAPSHOT</version.helm.maven.plugin>
+        <version.orphedomos.maven.plugin>0.10.0-SNAPSHOT</version.orphedomos.maven.plugin>
+        <version.cucumber>7.15.0</version.cucumber>
     </properties>
 
     <dependencies>
 
     <!-- maven -->
         <dependency>
+            <groupId>org.technologybrewery.orphedomos</groupId>
+            <artifactId>orphedomos-maven-plugin</artifactId>
+            <version>${version.orphedomos.maven.plugin}</version>
+        </dependency>
+        <dependency>
             <groupId>org.apache.maven</groupId>
             <artifactId>maven-plugin-api</artifactId>
+            <version>3.9.6</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -61,12 +44,13 @@
         <dependency>
             <groupId>org.apache.maven.plugin-tools</groupId>
             <artifactId>maven-plugin-annotations</artifactId>
+            <version>3.11.0</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.maven</groupId>
             <artifactId>maven-core</artifactId>
-            <version>${version.org.apache.maven.plugin}</version>
+            <version>3.9.6</version>
             <scope>provided</scope>
             <exclusions>
                 <exclusion>
@@ -79,17 +63,22 @@
                 </exclusion>
             </exclusions>
         </dependency>
+        <dependency>
+          <groupId>io.cucumber</groupId>
+          <artifactId>cucumber-java</artifactId>
+          <version>${version.cucumber}</version>
+          <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-junit</artifactId>
+            <version>${version.cucumber}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
         <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-checkstyle-plugin</artifactId>
-                <configuration>
-                    <skip>true</skip>
-                </configuration>
-            </plugin>
             <!-- generate help -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -102,6 +91,11 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>3.2.5</version>
+        </plugin>
         </plugins>
     </build>
 </project>
