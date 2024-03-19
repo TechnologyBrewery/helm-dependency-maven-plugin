@@ -4,7 +4,7 @@ import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
-import java.util.List;
+import java.util.HashSet;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Mojo;
@@ -67,14 +67,19 @@ public class UploadDependenciesMojo extends UploadMojo {
         credentials.logout();
     }
 
-    private void deployDockerDependentDockerImages(String chartDirectory) throws MojoExecutionException, InterruptedException {
+    private void deployDockerDependentDockerImages(String chartDirectory) throws InterruptedException, MojoExecutionException {
         String chartTarballs = Paths.get(chartDirectory, "target", "helm", "repo").toString();
-        List<String> dockerImages = HelmDependencyUtils.getDependentDockerImages(helm(), chartTarballs);
+        HashSet<String> dockerImages = new HashSet<>(HelmDependencyUtils.getDependentDockerImages(helm(), chartTarballs));
         DockerCommandExecutor executor = new DockerCommandExecutor(project.getBasedir());
         for(String dockerImage : dockerImages) {
             String newTag = String.format("%s%s", dockerUrl, dockerImage);
-            executor.executeAndLogOutput(Arrays.asList("tag", dockerImage, newTag));
-            executor.executeAndLogOutput(Arrays.asList("push", newTag));
+            try {
+                executor.executeAndLogOutput(Arrays.asList("tag", dockerImage, newTag));
+                executor.executeAndLogOutput(Arrays.asList("push", newTag));
+            }
+            catch (Exception e) {
+                getLog().error(e.getMessage());
+            }
         }
     }
 
